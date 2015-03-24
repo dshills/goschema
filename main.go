@@ -47,7 +47,7 @@ func main() {
 		}
 
 		for _, t := range tables {
-			file, err := os.Create(fullPath + "/" + t.GoName + ".go")
+			file, err := os.Create(path.Join(fullPath, t.GoName+".go"))
 			if err != nil {
 				log.Fatal(err)
 			}
