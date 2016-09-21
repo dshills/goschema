@@ -184,23 +184,3 @@ func (tbl *SQLTable) Generate(wr io.Writer, PackageName string) error {
 	}
 	return nil
 }
-
-/*
-// addHoc is not used
-// addHoc allows for a query without knowing the number or type of return fields
-func addHoc(rows sql.Rows) ([]interface{}, error) {
-	columnNames, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-	columns := make([]interface{}, len(columnNames))
-	columnPointers := make([]interface{}, len(columnNames))
-	for i := 0; i < len(columnNames); i++ {
-		columnPointers[i] = &columns[i]
-	}
-	if err := rows.Scan(columnPointers...); err != nil {
-		return nil, err
-	}
-	return columns, nil
-}
-*/

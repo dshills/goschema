@@ -11,12 +11,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-{{range $f := .Fields}}// {{$f.GoVar}} ==> {{$f.DBField}} {{$f.DBFullType}}{{if $f.Nullable}}, NULL{{end}}{{if $f.Key}}, Key:{{$f.Key}}{{end}} {{if .AutoIncrement}}auto_increment{{end}}
-{{end}}
-
 {{printf "// A %s is a direct representation of the database table %s" .GoName .DBName}}
 type {{.GoName}} struct {
-	{{range $d := .Fields}}{{$d.GoDecl}} // {{$d.DBField}}
+	{{range $d := .Fields}}{{$d.GoDecl}}
 	{{end}}}
 
 {{if .GoKeyName}}
@@ -29,7 +26,7 @@ func (sc *{{.GoName}})Get(db *sql.DB, key {{.GoKeyType}}) error {
 		return err
 	}
 	defer rows.Close()
-	
+
 	rows.Next()
 	if rows.Scan({{.ScanString}}) != nil {
 		return err
@@ -37,7 +34,7 @@ func (sc *{{.GoName}})Get(db *sql.DB, key {{.GoKeyType}}) error {
 	return nil
 }
 
-{{printf "// Set will insert or update a row in table %s" .DBName}} 
+{{printf "// Set will insert or update a row in table %s" .DBName}}
 {{printf "// if %s is blank or zero it will insert otherwise it will update" .GoKeyName}}
 {{printf "// if %s is an auto_increment field it will not try and insert the field" .GoKeyName}}
 func (sc {{.GoName}})Set(db *sql.DB) (sql.Result, error) {
@@ -48,7 +45,7 @@ func (sc {{.GoName}})Set(db *sql.DB) (sql.Result, error) {
 			return nil, err
 		}
 		return res, nil
-	} 
+	}
 
 	sqlstr := "INSERT INTO {{.DBName}} ({{.InsertFields}}) VALUES ({{.InsertPlaceHolders}})"
 	res, err := db.Exec(sqlstr, {{.InsertValues}})

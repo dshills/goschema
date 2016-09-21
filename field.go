@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -73,7 +74,7 @@ func NewSQLField(row *DBTblInfo) (*SQLField, error) {
 	}
 	f.setGoType(row)
 	f.setGoVar(row)
-	f.GoDecl = f.GoVar + " " + f.GoType
+	f.GoDecl = fmt.Sprintf("%s %s `db:\"%s\"`", f.GoVar, f.GoType, row.columnName)
 	f.Key = row.columnKey
 	f.PrimaryKey = false
 	f.AutoIncrement = false
