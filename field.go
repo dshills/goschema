@@ -34,10 +34,11 @@ var dataTypes = map[string]string{
 	"binary":     "[]byte",
 	"varbinary":  "[]byte",
 	"year":       "int64",
-	"time":       "[]byte",
-	"timestamp":  "[]byte",
-	"date":       "[]byte", // NOTE: could use time.Time
-	"datetime":   "[]byte", // NOTE: could use time.Time
+	// []byte or time.Time
+	"time":      "time.Time",
+	"timestamp": "time.Time",
+	"date":      "time.Time",
+	"datetime":  "time.Time",
 }
 
 // map of Go types to Null types
@@ -63,45 +64,46 @@ type SQLField struct {
 }
 
 // NewSQLField returns a new SQLField based on the meta data for the db field
-func NewSQLField(row *DBTblInfo) (*SQLField, error) {
-	f := new(SQLField)
-	f.DBField = row.columnName
-	f.DBType = row.dataType
-	f.DBFullType = row.columnType
-	f.Nullable = false
-	if row.isNullable == "YES" {
-		f.Nullable = true
+func NewSQLField(row *DBTblInfo) *SQLField {
+	f := SQLField{
+		DBField:       row.ColumnName,
+		DBType:        row.DataType,
+		DBFullType:    row.ColumnType,
+		Key:           row.ColumnKey,
+		PrimaryKey:    false,
+		AutoIncrement: false,
+		GoVar:         goVar(row.ColumnName),
 	}
-	f.setGoType(row)
-	f.setGoVar(row)
-	f.GoDecl = fmt.Sprintf("%s %s `db:\"%s\"`", f.GoVar, f.GoType, row.columnName)
-	f.Key = row.columnKey
-	f.PrimaryKey = false
-	f.AutoIncrement = false
-	if row.columnKey == "PRI" {
+	if row.ColumnKey == "PRI" {
 		f.PrimaryKey = true
-		if row.extra == "auto_increment" {
+		if row.Extra == "auto_increment" {
 			f.AutoIncrement = true
 		}
 	}
-	return f, nil
+	if row.IsNullable == "YES" {
+		f.Nullable = true
+	}
+	f.GoType = goType(row.DataType, f.Nullable)
+	f.GoDecl = fmt.Sprintf("%s %s `db:\"%s\"`", f.GoVar, f.GoType, row.ColumnName)
+	return &f
 }
 
-// setGoType determines the appropriate Go type based on the db field type
-func (f *SQLField) setGoType(row *DBTblInfo) {
-	f.GoType = dataTypes[row.dataType]
-	if f.GoType == "" {
-		f.GoType = "[]byte"
+// goType determines the appropriate Go type based on the db field type
+func goType(dt string, nullable bool) string {
+	gotype := dataTypes[dt]
+	if gotype == "" {
+		gotype = "[]byte"
 	}
-	if f.Nullable {
-		f.GoType = nullTypes[f.GoType]
+	if nullable {
+		gotype = nullTypes[gotype]
 	}
+	return gotype
 }
 
-// setGoVar creates a valid Go var name from the db field name
-func (f *SQLField) setGoVar(row *DBTblInfo) {
+// goVar creates a valid Go var name from the db field name
+func goVar(colName string) string {
 	numToWords := []string{"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
-	name := row.columnName
+	name := colName
 
 	// Check the first character in the name. Can't use a number
 	i, err := strconv.Atoi(name[:1])
@@ -128,5 +130,5 @@ func (f *SQLField) setGoVar(row *DBTblInfo) {
 			ts += strings.Title(sub)
 		}
 	}
-	f.GoVar = ts
+	return ts
 }

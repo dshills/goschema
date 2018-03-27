@@ -8,19 +8,19 @@ import (
 
 // A DBTblInfo contains information about a mysql table
 type DBTblInfo struct {
-	columnName string
-	dataType   string
-	columnType string
-	isNullable string
-	columnKey  string
-	extra      string
+	ColumnName string `db:"COLUMN_NAME"`
+	DataType   string `db:"DATA_TYPE"`
+	ColumnType string `db:"COLUMN_TYPE"`
+	IsNullable string `db:"IS_NULLABLE"`
+	ColumnKey  string `db:"COLUMN_KEY"`
+	Extra      string `db:"EXTRA"`
 }
 
 // A SQLTable represents a potential Go struct based on a table in a database
 type SQLTable struct {
 	PackageName   string
 	GoName        string
-	DBName        string
+	DBName        string `db:"TABLE_NAME"`
 	GoKeyType     string
 	GoKeyName     string
 	DBKeyName     string
@@ -29,19 +29,16 @@ type SQLTable struct {
 }
 
 // NewSQLTable returns a SQLTable with information about the table in the database
-func NewSQLTable(dbName, tblName string, fieldInfo []*DBTblInfo) (*SQLTable, error) {
-	tbl := new(SQLTable)
-	tbl.DBName = tblName
-	tbl.setGoName(tblName)
-	tbl.Fields = make([]*SQLField, 0, len(fieldInfo))
-	tbl.PackageName = "schema"
+func NewSQLTable(dbName, tblName string, fieldInfo []DBTblInfo) (*SQLTable, error) {
+	tbl := SQLTable{
+		DBName:      tblName,
+		GoName:      goTblName(tblName),
+		PackageName: "schema",
+	}
 
 	foundKey := false
 	for _, row := range fieldInfo {
-		fld, err := NewSQLField(row)
-		if err != nil {
-			return nil, err
-		}
+		fld := NewSQLField(&row)
 		if fld.PrimaryKey && foundKey {
 			// no support for multiple primary keys
 			tbl.DBKeyName = ""
@@ -57,11 +54,11 @@ func NewSQLTable(dbName, tblName string, fieldInfo []*DBTblInfo) (*SQLTable, err
 		tbl.Fields = append(tbl.Fields, fld)
 	}
 
-	return tbl, nil
+	return &tbl, nil
 }
 
-// setGoName creates a valid Go struct name based on a db table name
-func (tbl *SQLTable) setGoName(name string) {
+// goTblName creates a valid Go struct name based on a db table name
+func goTblName(name string) string {
 	numToWords := []string{"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"}
 
 	i, err := strconv.Atoi(name[:1])
@@ -74,7 +71,7 @@ func (tbl *SQLTable) setGoName(name string) {
 	for _, sub := range s {
 		ts += strings.Title(sub)
 	}
-	tbl.GoName = ts
+	return ts
 }
 
 // SelectFields returns a comma seperated list of table fields for use in a select statement
@@ -175,12 +172,19 @@ func (tbl SQLTable) GoKeyCompare() string {
 
 // Generate writes the Go representation of a table to the supplied io.Writer
 // It uses the packagename in the template for creating code
-func (tbl *SQLTable) Generate(wr io.Writer, PackageName string) error {
+func (tbl *SQLTable) Generate(wr io.Writer, PackageName string, usesqlx bool) error {
 	tbl.PackageName = PackageName
-	tmpl := schemaTemplate()
-	err := tmpl.Execute(wr, tbl)
+	tmpl, err := loadTemplate("./", usesqlx)
 	if err != nil {
 		return err
 	}
-	return nil
+	return tmpl.Execute(wr, tbl)
+	/*
+		tmpl := schemaTemplate()
+		err := tmpl.Execute(wr, tbl)
+		if err != nil {
+			return err
+		}
+		return nil
+	*/
 }
