@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestGetTables(t *testing.T) {
+func TestGoStruct(t *testing.T) {
 	opt := options{
 		user:     "admin",
 		password: "abc",
@@ -20,7 +20,10 @@ func TestGetTables(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(tbls) < 10 {
-		t.Errorf("Expected > 10 tables got %v\n", len(tbls))
+	for _, tb := range tbls {
+		ts, _ := goStruct(tb)
+		if ts == "" {
+			t.Errorf("Expected struct got nothing")
+		}
 	}
 }
