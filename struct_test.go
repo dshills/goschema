@@ -5,18 +5,18 @@ import (
 )
 
 func TestGoStruct(t *testing.T) {
-	opt := options{
-		user:     "admin",
-		password: "abc",
-		host:     "localhost",
-		port:     3306,
-		name:     "redivus",
+	conf := config{
+		User:     "admin",
+		Password: "abc",
+		Host:     "localhost",
+		Port:     3306,
+		Name:     "redivus",
 	}
-	db, err := dbConnect(&opt)
+	db, err := dbConnect(&conf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tbls, err := getTables(db, opt.name)
+	tbls, err := getTables(db, conf.Name)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -6,19 +6,19 @@ import (
 )
 
 func TestOutput(t *testing.T) {
-	opt := options{
-		user:        "admin",
-		password:    "abc",
-		host:        "localhost",
-		port:        3306,
-		name:        "redivus",
-		packageName: "model",
+	conf := config{
+		User:        "admin",
+		Password:    "abc",
+		Host:        "localhost",
+		Port:        3306,
+		Name:        "redivus",
+		PackageName: "model",
 	}
-	db, err := dbConnect(&opt)
+	db, err := dbConnect(&conf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tbls, err := getTables(db, opt.name)
+	tbls, err := getTables(db, conf.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestOutput(t *testing.T) {
 	var b bytes.Buffer
 	for _, tb := range tbls {
 		ts, imports := goStruct(tb)
-		err := writeModel(&b, imports, ts, opt.packageName, goName(tb.Name))
+		err := writeModel(&b, imports, ts, conf.PackageName, goName(tb.Name))
 		if err != nil {
 			t.Error(err)
 		}
@@ -34,27 +34,27 @@ func TestOutput(t *testing.T) {
 }
 
 func TestFileOutput(t *testing.T) {
-	opt := options{
-		user:        "admin",
-		password:    "abc",
-		host:        "localhost",
-		port:        3306,
-		name:        "redivus",
-		packageName: "model",
-		output:      "./_output",
+	conf := config{
+		User:        "admin",
+		Password:    "abc",
+		Host:        "localhost",
+		Port:        3306,
+		Name:        "redivus",
+		PackageName: "model",
+		OutputDir:   "./_output",
 	}
-	db, err := dbConnect(&opt)
+	db, err := dbConnect(&conf)
 	if err != nil {
 		t.Fatal(err)
 	}
-	tbls, err := getTables(db, opt.name)
+	tbls, err := getTables(db, conf.Name)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, tb := range tbls {
 		ts, imports := goStruct(tb)
-		err := writeFile(opt.output, imports, ts, opt.packageName, goName(tb.Name))
+		err := writeFile(conf.OutputDir, imports, ts, conf.PackageName, goName(tb.Name))
 		if err != nil {
 			t.Error(err)
 		}

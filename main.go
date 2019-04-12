@@ -4,53 +4,55 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 
 	// blank import for mysql driver
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 )
 
-type options struct {
-	name        string
-	user        string
-	password    string
-	host        string
-	port        int
-	packageName string
-	output      string
-}
-
-func flags() (*options, error) {
-	opt := options{}
-	flag.StringVar(&opt.user, "user", "root", "User for login")
-	flag.StringVar(&opt.name, "name", "", "Database name")
-	flag.StringVar(&opt.password, "password", "", "Password to use when connecting to server")
-	flag.StringVar(&opt.host, "host", "127.0.0.1", "Connect to host")
-	flag.IntVar(&opt.port, "port", 3306, "Port number to use for connection")
-	flag.StringVar(&opt.packageName, "package", "main", "Package name for code generation")
-	flag.StringVar(&opt.output, "output", "./", "Output directory")
+func flags() (*config, error) {
+	confPath := ""
+	conf := config{}
+	flag.StringVar(&confPath, "config", "", "Configuration file path")
+	flag.StringVar(&conf.User, "user", "root", "User for login")
+	flag.StringVar(&conf.Name, "name", "", "Database name")
+	flag.StringVar(&conf.Password, "password", "", "Password to use when connecting to server")
+	flag.StringVar(&conf.Host, "host", "127.0.0.1", "Connect to host")
+	flag.IntVar(&conf.Port, "port", 3306, "Port number to use for connection")
+	flag.StringVar(&conf.PackageName, "package", "main", "Package name for code generation")
+	flag.StringVar(&conf.OutputDir, "output", "./", "Output directory")
 	flag.Parse()
 
-	if opt.name == "" {
+	if confPath != "" {
+		return readConfig(confPath)
+	}
+
+	if conf.Name == "" {
 		flag.Usage()
 		return nil, fmt.Errorf("Not set")
 	}
-	return &opt, nil
+	return &conf, nil
 }
 
 func main() {
-	opt, err := flags()
+	conf, err := flags()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	db, err := dbConnect(opt)
+	db, err := dbConnect(conf)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	tables, err := getTables(db, opt.name)
+	for _, nt := range conf.NullTypes {
+		nullTypes[nt.DataType] = nt.NullType
+	}
+	for _, dt := range conf.DataTypes {
+		dataTypes[dt.DataType] = dt.GoType
+	}
+
+	tables, err := getTables(db, conf.Name)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -58,19 +60,20 @@ func main() {
 
 	for _, tbl := range tables {
 		ts, imports := goStruct(tbl)
-		err := writeFile(opt.output, imports, ts, opt.packageName, goName(tbl.Name))
+		err := writeFile(conf.OutputDir, imports, ts, conf.PackageName, goName(tbl.Name))
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
-
-	if err = exec.Command("gofmt", "-w", opt.output).Run(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
+	/*
+		if err = exec.Command("gofmt", "-w", conf.OutputDir).Run(); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	*/
 }
 
-func dbConnect(opt *options) (*sqlx.DB, error) {
-	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v", opt.user, opt.password, opt.host, opt.port, opt.name)
+func dbConnect(conf *config) (*sqlx.DB, error) {
+	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v", conf.User, conf.Password, conf.Host, conf.Port, conf.Name)
 	return sqlx.Connect("mysql", dsn)
 }

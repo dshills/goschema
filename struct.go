@@ -17,7 +17,7 @@ func goStruct(table DBTable) (string, string) {
 		for _, im := range imp {
 			imap[im] = true
 		}
-		structStr += fmt.Sprintf("\t%s %s `db:\"%s\"`\n", f, ty, fld.ColumnName)
+		structStr += fmt.Sprintf("\t%s %s `db:\"%s\" json:\"%s\"`\n", f, ty, fld.ColumnName, fld.ColumnName)
 	}
 	structStr += "}\n"
 
